@@ -1,98 +1,83 @@
-const redis = require('redis');
-
 class CacheService {
   constructor() {
-    this.client = null;
-    this.isConnected = false;
+    this.cache = new Map();
+    this.timeouts = new Map();
   }
 
   async connect() {
-    try {
-      if (process.env.SKIP_REDIS === 'true') {
-        console.log('Redis is disabled. Running without cache.');
-        return;
-      }
-
-      this.client = redis.createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379'
-      });
-
-      this.client.on('error', (err) => {
-        console.log('Redis Client Error:', err);
-        this.isConnected = false;
-      });
-
-      this.client.on('connect', () => {
-        console.log('Redis Client Connected');
-        this.isConnected = true;
-      });
-
-      await this.client.connect();
-    } catch (error) {
-      console.log('Redis connection failed:', error.message);
-      this.isConnected = false;
-    }
+    console.log('In-memory cache initialized');
+    return Promise.resolve();
   }
 
   async get(key) {
-    if (!this.isConnected) return null;
-    
-    try {
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.log('Redis GET error:', error.message);
-      return null;
-    }
+    return this.cache.get(key) || null;
   }
 
   async set(key, value, expireInSeconds = 3600) {
-    if (!this.isConnected) return false;
-    
     try {
-      await this.client.setEx(key, expireInSeconds, JSON.stringify(value));
+      this.cache.set(key, value);
+      
+      // Clear any existing timeout for this key
+      if (this.timeouts.has(key)) {
+        clearTimeout(this.timeouts.get(key));
+      }
+      
+      // Set new timeout
+      const timeout = setTimeout(() => {
+        this.cache.delete(key);
+        this.timeouts.delete(key);
+      }, expireInSeconds * 1000);
+      
+      this.timeouts.set(key, timeout);
       return true;
     } catch (error) {
-      console.log('Redis SET error:', error.message);
+      console.log('Cache SET error:', error.message);
       return false;
     }
   }
 
   async del(key) {
-    if (!this.isConnected) return false;
-    
     try {
-      await this.client.del(key);
+      this.cache.delete(key);
+      if (this.timeouts.has(key)) {
+        clearTimeout(this.timeouts.get(key));
+        this.timeouts.delete(key);
+      }
       return true;
     } catch (error) {
-      console.log('Redis DEL error:', error.message);
+      console.log('Cache DEL error:', error.message);
       return false;
     }
   }
 
   async delPattern(pattern) {
-    if (!this.isConnected) return false;
-    
     try {
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(keys);
+      const regex = new RegExp(pattern.replace('*', '.*'));
+      for (const key of this.cache.keys()) {
+        if (regex.test(key)) {
+          await this.del(key);
+        }
       }
       return true;
     } catch (error) {
-      console.log('Redis DEL pattern error:', error.message);
+      console.log('Cache DEL pattern error:', error.message);
       return false;
     }
   }
 
   async flush() {
-    if (!this.isConnected) return false;
-    
     try {
-      await this.client.flushAll();
+      // Clear all timeouts
+      for (const timeout of this.timeouts.values()) {
+        clearTimeout(timeout);
+      }
+      
+      // Clear maps
+      this.cache.clear();
+      this.timeouts.clear();
       return true;
     } catch (error) {
-      console.log('Redis FLUSH error:', error.message);
+      console.log('Cache FLUSH error:', error.message);
       return false;
     }
   }
