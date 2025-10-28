@@ -8,6 +8,11 @@ class CacheService {
 
   async connect() {
     try {
+      if (process.env.SKIP_REDIS === 'true') {
+        console.log('Redis is disabled. Running without cache.');
+        return;
+      }
+
       this.client = redis.createClient({
         url: process.env.REDIS_URL || 'redis://localhost:6379'
       });
