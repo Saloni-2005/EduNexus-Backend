@@ -39,6 +39,7 @@ app.use(cors({
 
 app.use(mongoSanitize());
 
+app.use('/',() => {console.log('API is running...')});
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
 
