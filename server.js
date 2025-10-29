@@ -14,33 +14,31 @@ dotenv.config();
 
 const app = express();
 
-// app.use((req, res, next) => {
-//   if (req.method === 'OPTIONS') {
-//     res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || 'http://localhost:5173');
-//     res.header('Access-Control-Allow-Credentials', 'true');
-//     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-//     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//     return res.sendStatus(200);
-//   }
-//   next();
-// });
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function(origin, callback) {
+    // Allow non-browser requests or same-origin
+    if (!origin) return callback(null, true);
+    if (corsOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
 }));
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  contentSecurityPolicy: false,
-  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+  contentSecurityPolicy: false
 }));
 
 app.use(mongoSanitize());
 
-app.use('/',() => {console.log('API is running...')});
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
 
