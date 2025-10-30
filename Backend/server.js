@@ -20,11 +20,17 @@ const corsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'ht
   .map(o => o.trim())
   .filter(Boolean);
 
+console.log('Allowed CORS origins:', corsOrigins);
+
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow non-browser requests or same-origin
+    console.log('Incoming origin:', origin);
     if (!origin) return callback(null, true);
-    if (corsOrigins.includes(origin)) return callback(null, true);
+    if (corsOrigins.includes(origin)) {
+      console.log('✅ Origin allowed');
+      return callback(null, true);
+    }
+    console.log('❌ Origin blocked');
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -32,6 +38,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204
 }));
+app.options('*', cors());
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
