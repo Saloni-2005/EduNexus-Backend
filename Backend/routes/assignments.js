@@ -225,7 +225,7 @@ router.get('/instructor/assignments', auth, permit('instructor','admin'), async 
 
 router.get('/instructor/submissions', auth, permit('instructor','admin'), async (req, res) => {
   try {
-    const Course = require('../models/Course');
+    const Course = require('../Backend/models/Course');
     
     const createdCourses = await Course.find({ instructor: req.user._id });
     const courseIds = createdCourses.map(course => course._id);
@@ -262,7 +262,7 @@ router.get('/instructor/submissions', auth, permit('instructor','admin'), async 
 
 router.get('/user/assignments', auth, async (req,res) => {
   try {
-    const Course = require('../models/Course');
+    const Course = require('../Backend/models/Course');
     
     const enrolledCourses = await Course.find({ students: req.user._id });
     const courseIds = enrolledCourses.map(course => course._id);
