@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const auth = async (req,res,next) => {
-  const token = req.header('Authorization')?.replace('Bearer ','');
+  const token = req.cookies?.jwt_token;
   if(!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
   try{

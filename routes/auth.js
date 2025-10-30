@@ -29,15 +29,21 @@ router.post('/register', catchAsync(async (req, res, next) => {
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.TOKEN_EXPIRY || '7d' });
   
-  res.status(201).json({ 
-    token, 
-    user: { 
-      id: user._id, 
-      name: user.name, 
-      email: user.email, 
-      role: user.role 
-    } 
-  });
+  res
+    .cookie('jwt_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    })
+    .status(201).json({ 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role 
+      } 
+    });
 }));
 
 router.post('/login', catchAsync(async (req, res, next) => {
@@ -59,15 +65,47 @@ router.post('/login', catchAsync(async (req, res, next) => {
   
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.TOKEN_EXPIRY || '7d' });
   
-  res.json({ 
-    token, 
-    user: { 
-      id: user._id, 
-      name: user.name, 
-      email: user.email, 
-      role: user.role 
-    } 
-  });
+  res
+    .cookie('jwt_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    })
+    .json({ 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role 
+      } 
+    });
+}));
+
+router.post('/refresh', catchAsync(async (req, res, next) => {
+  const refreshToken = req.cookies?.refresh_token;
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'No refresh token provided' });
+  }
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ message: 'Invalid refresh token (user not found)' });
+    const newAccessToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.TOKEN_EXPIRY || '7d' }
+    );
+    res.cookie('jwt_token', newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+    res.json({ message: 'Token refreshed' });
+  } catch (e) {
+    res.status(401).json({ message: 'Invalid refresh token' });
+  }
 }));
 
 module.exports = router;

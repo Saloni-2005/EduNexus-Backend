@@ -9,12 +9,12 @@ const dotenv = require('dotenv');
 const { limiter, authLimiter} = require('./middleware/security');
 const globalErrorHandler = require('./utils/errorHandler');
 const cache = require('./utils/cache');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 
 const app = express();
 
-// Robust CORS with whitelist (supports comma-separated origins in CORS_ORIGINS)
 const corsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
@@ -39,6 +39,7 @@ app.use(helmet({
 }));
 
 app.use(mongoSanitize());
+app.use(cookieParser());
 
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
