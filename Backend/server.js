@@ -103,6 +103,8 @@ app.use('/api/instructor', require('./routes/instructor'));
 
 app.use(globalErrorHandler);
 
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.all('*', (req, res, next) => {
   const err = new Error(`Can't find ${req.originalUrl} on this server!`);
   err.status = 'fail';
