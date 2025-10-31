@@ -3,10 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 const path = require('path');
 const dotenv = require('dotenv');
-const { limiter, authLimiter} = require('./middleware/security');
+const { limiter, authLimiter } = require('./middleware/security');
 const globalErrorHandler = require('./utils/errorHandler');
 const cache = require('./utils/cache');
 const cookieParser = require('cookie-parser');
@@ -15,8 +15,14 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json())
+app.use(cors({
+  origin: [
+    "https://tourmaline-empanada-3a832e.netlify.app"
+  ],
+  credentials: true,
+}));
+app.options('*', cors());
+app.use(express.json());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
