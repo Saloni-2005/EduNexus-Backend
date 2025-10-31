@@ -17,7 +17,7 @@ const app = express();
 
 app.use(cors({
   origin: [
-    "https://tourmaline-empanada-3a832e.netlify.app"
+    "https://edu-nexus-backend.vercel.app",
   ],
   credentials: true,
 }));
