@@ -67,10 +67,10 @@ router.post('/login', catchAsync(async (req, res, next) => {
   
   res
     .cookie('jwt_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      httpOnly: true,   // prevent JS access
+      secure: true,     // required for HTTPS (Render uses HTTPS)
+      sameSite: "none", // required for cross-origin cookies
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     })
     .json({ 
       user: { 
