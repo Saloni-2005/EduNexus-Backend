@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const connectDB = require('./config/db');
+const bodyParser = require('body-parser')
 const path = require('path');
 const dotenv = require('dotenv');
 const { limiter, authLimiter} = require('./middleware/security');
@@ -15,30 +16,10 @@ dotenv.config();
 
 const app = express();
 
-const corsOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map(o => o.trim())
-  .filter(Boolean);
-
-console.log('Allowed CORS origins:', corsOrigins);
-
-app.use(cors({
-  origin: function(origin, callback) {
-    console.log('Incoming origin:', origin);
-    if (!origin) return callback(null, true);
-    if (corsOrigins.includes(origin)) {
-      console.log('✅ Origin allowed');
-      return callback(null, true);
-    }
-    console.log('❌ Origin blocked');
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 204
-}));
-app.options('*', cors());
+app.use(cors());
+app.use(express.json())
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -50,9 +31,6 @@ app.use(cookieParser());
 
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
